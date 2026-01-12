@@ -1,6 +1,6 @@
 {
   "app": {
-    "bundleName": "com.hmosdemos.parkingtimer",
+    "bundleName": "com.hmosdemos.wearable.parking_timer",
     "vendor": "hmosdemos",
     "versionCode": 1000000,
     "versionName": "1.0.0",

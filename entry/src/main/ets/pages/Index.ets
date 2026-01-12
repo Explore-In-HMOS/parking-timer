@@ -22,7 +22,11 @@ struct ParkingTimer {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+
+    const hf = h.toString().padStart(2, '0');
+    const mf = m.toString().padStart(2, '0');
+    const sf = s.toString().padStart(2, '0');
+    return `${hf}:${mf}:${sf}`;
   }
 
   startParking() {
@@ -56,7 +60,7 @@ struct ParkingTimer {
           notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT,
           normal: {
             title: 'Parking Time Over!',
-            text: `${this.reminderMinutes} minutes have passed. Check your vehicle.`,
+            text: `${this.reminderMinutes} minutes have passed. Check your vehicle.`
           }
         },
         deliveryTime: Date.now() + (this.reminderMinutes * 60 * 1000)
@@ -74,12 +78,11 @@ struct ParkingTimer {
     const TAG: string = '[PublishOperation]';
     const DOMAIN_NUMBER: number = 0xFF00; //
     notificationManager.isNotificationEnabled().then((data: boolean) => {
-      hilog.info(DOMAIN_NUMBER, TAG, 'isNotificationEnabled success, data: ' + JSON.stringify(data));
       if (!data) {
         notificationManager.requestEnableNotification(context).then(() => {
           hilog.info(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification success`);
         }).catch((err: BusinessError) => {
-          if (1600004 == err.code) {
+          if (1600004 === err.code) {
             hilog.error(DOMAIN_NUMBER, TAG,
               `[ANS] requestEnableNotification refused, code is ${err.code}, message is ${err.message}`);
           } else {
@@ -124,7 +127,7 @@ struct ParkingTimer {
             .margin({ bottom: 8 })
 
           Row() {
-            Button("-")
+            Button('-')
               .width(40)
               .height(40)
               .backgroundColor('#333333')
@@ -143,7 +146,7 @@ struct ParkingTimer {
               .width(70)
               .textAlign(TextAlign.Center)
 
-            Button("+")
+            Button('+')
               .width(40)
               .height(40)
               .backgroundColor('#333333')
