@@ -1,27 +1,24 @@
-> **Note:** To access all shared projects, get information about environment setup, and view other guides, please visit [Explore-In-HMOS-Wearable Index](https://github.com/Explore-In-HMOS-Wearable/hmos-index).
-
 # Parking Timer
 
-A simple and practical wearable application that helps users track their parking duration and receive timely reminders.
-The app features a clean, minimalist interface with a real-time elapsed time counter and customizable reminder settings.
-Users can start and stop parking sessions with a single tap, set reminder intervals from 30 to 480 minutes, and receive
-notifications when their parking time is about to expire. The dark-themed interface is optimized for wearable devices
-with circular displays.
+A comprehensive parking management app for wearable devices featuring GPS location tracking with auto-saved addresses, built-in cost calculator for hourly rates, complete parking history with detailed statistics, smart countdown timer with customizable durations, and a modern dark mode interface optimized for OLED displays. Built with MVVM architecture, it tracks your parking sessions, calculates total expenses, identifies frequently used locations, and stores everything locally with zero internet dependency except for address lookups—all while maintaining maximum 16px fonts for optimal readability on small screens.
 
 # Preview
 
 <p align="left">
-  <img src="screenshots/1.png" width="25%">
-  <img src="screenshots/2.png" width="25%">
+  <img src="screenshots/1.png" width="24%">
+  <img src="screenshots/2.png" width="24%">
+  <img src="screenshots/3.png" width="24%">
+  <img src="screenshots/4.png" width="24%">
 </p>
 
 # Use Cases
 
-Ideal for drivers who need to monitor parking time limits in metered zones, parking garages, or time-restricted areas.
-Perfect for preventing parking tickets by providing advance warnings before time expires. The wearable format allows
-users to check remaining time and receive notifications directly on their wrist without having to take out their phone.
-Suitable for daily commuters, shoppers, and anyone who frequently parks in time-limited spaces and wants a convenient
-way to avoid overstaying.
+* **Smart Timer** - Set parking duration (30min - 8hrs) with real-time countdown
+* **Cost Calculator** - Enter hourly rate, see estimated and actual costs
+* **Parking History** - View all past sessions with date, time, location, and cost
+* **Statistics** - Track total sessions, hours parked, money spent, favorite spots
+* **Dark Mode** - Battery-efficient OLED-optimized interface (max 16px fonts)
+* **Offline Storage** - All data saved locally, works without internet
 
 # Tech Stack
 
@@ -38,8 +35,14 @@ entry/src/main/ets/
 │       EntryAbility.ets
 ├───entrybackupability
 │       EntryBackupAbility.ets
+├───models
+│       ParkingRecord.ets
 ├───pages
 │       Index.ets
+├───services
+│       StorageService.ets
+├───viewmodels
+│       ParkingViewModel.ets
 └───
 ```
 
@@ -47,7 +50,7 @@ entry/src/main/ets/
 
 ## Supported Devices
 
-- Harmony OS Next Phone
+- Huawei Watch 5
 
 # LICENSE
 

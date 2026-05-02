@@ -1,55 +1,14 @@
-import { notificationManager } from '@kit.NotificationKit';
-import { common } from '@kit.AbilityKit';
-import { BusinessError } from '@kit.BasicServicesKit';
-import { hilog } from '@kit.PerformanceAnalysisKit';
+import { ParkingViewModel } from '../viewmodels/ParkingViewModel'
+import { ParkingRecord } from '../models/ParkingRecord'
+import { notificationManager } from '@kit.NotificationKit'
+import { common } from '@kit.AbilityKit'
+import { hilog } from '@kit.PerformanceAnalysisKit'
 
 @Entry
 @Component
-struct ParkingTimer {
-  @State isParking: boolean = false;
-  @State startTime: number = 0;
-  @State elapsedTime: string = '00:00:00';
-  @State reminderMinutes: number = 120;
-  private timer: number = -1;
-
-  aboutToDisappear() {
-    if (this.timer !== -1) {
-      clearInterval(this.timer);
-    }
-  }
-
-  formatTime(seconds: number): string {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-
-    const hf = h.toString().padStart(2, '0');
-    const mf = m.toString().padStart(2, '0');
-    const sf = s.toString().padStart(2, '0');
-    return `${hf}:${mf}:${sf}`;
-  }
-
-  startParking() {
-    this.isParking = true;
-    this.startTime = Date.now();
-
-    this.timer = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
-      this.elapsedTime = this.formatTime(elapsed);
-    }, 1000);
-
-    this.setReminder();
-  }
-
-  stopParking() {
-    this.isParking = false;
-    if (this.timer !== -1) {
-      clearInterval(this.timer);
-      this.timer = -1;
-    }
-    this.elapsedTime = '00:00:00';
-    notificationManager.cancel(1)
-  }
+struct Index {
+  @State viewModel: ParkingViewModel = new ParkingViewModel()
+  @State currentTab: number = 0
 
   async setReminder() {
     try {
@@ -60,10 +19,10 @@ struct ParkingTimer {
           notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT,
           normal: {
             title: 'Parking Time Over!',
-            text: `${this.reminderMinutes} minutes have passed. Check your vehicle.`
+            text: `${this.viewModel.selectedHour} minutes have passed. Check your vehicle.`
           }
         },
-        deliveryTime: Date.now() + (this.reminderMinutes * 60 * 1000)
+        deliveryTime: Date.now() + (this.viewModel.selectedHour * 60 * 1000)
       };
 
       await notificationManager.publish(notificationRequest);
@@ -96,95 +55,562 @@ struct ParkingTimer {
     });
   }
 
-  build() {
+  aboutToAppear(): void {
+    let context = this.getUIContext().getHostContext()
+    if (context !== undefined) {
+      this.viewModel.initialize(context)
+    }
+  }
+
+  aboutToDisappear(): void {
+    this.viewModel.dispose()
+  }
+
+  @State currentIndex: number = 0;
+
+  @Builder
+  tabBuilder(title: ResourceStr, targetIndex: number) {
     Column() {
-      Text('Parking Timer')
-        .fontSize(15)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#FFFFFF')
-        .margin({ top: 12, bottom: 10 })
-
-      Column() {
-        Text(this.elapsedTime)
-          .fontSize(26)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(this.isParking ? '#00CC88' : '#999999')
-          .margin({ bottom: 3 })
-
-        Text(this.isParking ? 'Parking Time' : 'Ready')
-          .fontSize(11)
-          .fontColor('#AAAAAA')
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.Center)
-      .margin({ bottom: 12 })
-
-      if (!this.isParking) {
-        Column() {
-          Text('Reminder')
-            .fontSize(10)
-            .fontColor('#AAAAAA')
-            .margin({ bottom: 8 })
-
-          Row() {
-            Button('-')
-              .width(40)
-              .height(40)
-              .backgroundColor('#333333')
-              .borderRadius(20)
-              .onClick(() => {
-                if (this.reminderMinutes > 30) {
-                  this.reminderMinutes -= 30;
-                }
-              })
-
-            Text(`${this.reminderMinutes} min`)
-              .fontSize(13)
-              .fontWeight(FontWeight.Medium)
-              .fontColor('#FFFFFF')
-              .margin({ left: 15, right: 15 })
-              .width(70)
-              .textAlign(TextAlign.Center)
-
-            Button('+')
-              .width(40)
-              .height(40)
-              .backgroundColor('#333333')
-              .borderRadius(20)
-              .onClick(() => {
-                if (this.reminderMinutes < 480) {
-                  this.reminderMinutes += 30;
-                }
-              })
-          }
-          .justifyContent(FlexAlign.Center)
-          .margin({ bottom: 15 })
-        }
-      }
-
-      Button(this.isParking ? 'Stop' : 'Start')
-        .width('75%')
-        .height(38)
-        .fontSize(13)
-        .fontWeight(FontWeight.Medium)
-        .backgroundColor(this.isParking ? '#FF5555' : '#00CC88')
-        .fontColor('#FFFFFF')
-        .onClick(() => {
-          if (this.isParking) {
-            this.stopParking();
-          } else {
-            this.startParking();
-          }
-        })
+      Text(title)
+        .fontSize(16)
+        .fontColor(this.currentIndex === targetIndex ? '#1698CE' : '#6B6B6B')
+      Divider()
+        .width('87%')
+        .height(1)
+        .margin(2)
+        .color(this.currentIndex === targetIndex ? '#1698CE' : '#6B6B6B')
     }
     .width('100%')
-    .height('233vp')
-    .backgroundColor('#1A1A1A')
-    .padding({
-      left: 15,
-      right: 15,
-      top: 10,
-      bottom: 10
-    })
+    .height(50)
+    .justifyContent(FlexAlign.Center)
+  }
+
+  build() {
+    Scroll() {
+      Column() {
+        this.TopBar()
+
+        Tabs({ index: this.currentTab }) {
+          TabContent() {
+            this.TimerTab()
+          }
+          .tabBar(this.tabBuilder('Timer', 0))
+
+          TabContent() {
+            this.HistoryTab()
+          }
+          .tabBar(this.tabBuilder('History', 1))
+
+          TabContent() {
+            this.StatisticsTab()
+          }
+          .tabBar(this.tabBuilder('Stats', 2))
+        }
+        .onChange((index: number) => {
+          this.currentTab = index
+          this.currentIndex = index
+        })
+        .width('100%')
+        .height('100%')
+        .backgroundColor('#121212')
+      }
+    }.width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  TopBar() {
+    Column() {
+      Text('Parking Timer')
+        .fontSize(18)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(Color.White)
+        .margin({ top: 12 })
+
+      Blank()
+
+      if (this.viewModel.isTimerRunning) {
+        Row() {
+          Circle({ width: 6, height: 6 })
+            .fill(Color.Green)
+          Text('Active')
+            .fontSize(10)
+            .fontColor('#4CAF50')
+        }.margin(2)
+      }
+    }
+    .width('100%')
+    .height(50)
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor('#1E1E1E')
+    .shadow({ radius: 2, color: '#00000085' })
+  }
+
+  @Builder
+  TimerTab() {
+    Scroll() {
+      Column({ space: 6 }) {
+        // Messages
+        if (this.viewModel.errorMessage) {
+          this.MessageBanner(this.viewModel.errorMessage, '#F44336')
+        }
+        if (this.viewModel.successMessage) {
+          this.MessageBanner(this.viewModel.successMessage, '#4CAF50')
+        }
+
+        // Timer Display
+        this.TimerDisplay()
+
+        // Cost Calculator
+        if (!this.viewModel.isTimerRunning) {
+          this.CostCalculator()
+        }
+
+        // Time Selector
+        if (!this.viewModel.isTimerRunning) {
+          this.TimeSelector()
+        }
+
+        // Control Buttons
+        this.ControlButtons()
+
+        // Current Parking Info
+        if (this.viewModel.isTimerRunning) {
+          this.CurrentParkingInfo()
+        }
+      }
+      .width('100%')
+      .padding({ bottom: 16, right: 16, left: 16 })
+    }
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  MessageBanner(message: string, color: string) {
+    Row() {
+      Text(message)
+        .fontSize(12)
+        .fontColor(Color.White)
+    }
+    .width('100%')
+    .padding(12)
+    .backgroundColor(color)
+    .borderRadius(8)
+    .animation({ duration: 300 })
+  }
+
+  @Builder
+  TimerDisplay() {
+    Column({ space: 6 }) {
+      if (this.viewModel.isTimerRunning) {
+        Text('Time Remaining')
+          .fontSize(14)
+          .fontColor('#666666')
+
+        Text(this.viewModel.formatTime(this.viewModel.remainingTime))
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#2196F3')
+          .fontFamily('monospace')
+
+        Progress({
+          value: this.viewModel.remainingTime,
+          total: (this.viewModel.selectedHour * 60 + this.viewModel.selectedMinute) * 60,
+          type: ProgressType.Linear
+        })
+          .width('100%')
+          .color('#2196F3')
+      } else {
+        Text('Set Parking Duration')
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#333333')
+      }
+    }
+    .width('100%')
+    .padding(12)
+    .borderRadius(16)
+    .backgroundColor('#1E1E1E')
+    .shadow({ radius: 4, color: '#00000010' })
+  }
+
+  @Builder
+  CostCalculator() {
+    Column({ space: 3 }) {
+      Text('💰 Cost Calculator')
+        .fontSize(14)
+        .fontWeight(FontWeight.Medium)
+        .width('100%')
+
+      Row({ space: 4 }) {
+        Text('Hourly Rate:')
+          .fontSize(12)
+          .fontColor('#666666')
+
+        TextInput({ placeholder: '0.00' })
+          .type(InputType.Number)
+          .fontSize(12)
+          .placeholderFont({ size: 12 })
+          .borderRadius(8)
+          .padding(8)
+          .height(30)
+          .layoutWeight(1)
+          .defaultFocus(false)
+          .onChange((value: string) => {
+            const rate = parseFloat(value) || 0
+            this.viewModel.setHourlyRate(rate)
+          })
+
+        Text(this.viewModel.settings?.currency || '₺')
+          .fontSize(12)
+          .fontColor('#666666')
+      }
+      .width('100%')
+
+      if (this.viewModel.estimatedCost > 0) {
+        Divider()
+          .color('#EEEEEE')
+
+        Row() {
+          Text('Estimated Cost:')
+            .fontSize(12)
+            .fontColor('#666666')
+
+          Blank()
+
+          Text(this.viewModel.formatCurrency(this.viewModel.estimatedCost))
+            .fontSize(14)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#4CAF50')
+        }
+        .width('100%')
+      }
+    }
+    .width('100%')
+    .padding(16)
+    .borderRadius(12)
+    .backgroundColor('#1E1E1E')
+  }
+
+  @Builder
+  TimeSelector() {
+    Column({ space: 6 }) {
+      Text('⏱️ Duration')
+        .fontSize(14)
+        .fontWeight(FontWeight.Medium)
+        .width('100%')
+
+      Row({ space: 8 }) {
+        Column({ space: 2 }) {
+          Text('Hours')
+            .fontSize(10)
+            .fontColor('#999999')
+
+          Counter() {
+            Text(this.viewModel.selectedHour.toString())
+              .fontSize(16)
+              .fontWeight(FontWeight.Bold)
+          }
+          .onInc(() => {
+            if (this.viewModel.selectedHour < 23) {
+              this.viewModel.selectedHour++
+              this.viewModel.calculateEstimatedCost()
+            }
+          })
+          .onDec(() => {
+            if (this.viewModel.selectedHour > 0) {
+              this.viewModel.selectedHour--
+              this.viewModel.calculateEstimatedCost()
+            }
+          })
+        }
+        .layoutWeight(1)
+
+        Column({ space: 2 }) {
+          Text('Minutes')
+            .fontSize(10)
+            .fontColor('#999999')
+
+          Counter() {
+            Text(this.viewModel.selectedMinute.toString())
+              .fontSize(14)
+              .fontWeight(FontWeight.Bold)
+          }
+          .onInc(() => {
+            if (this.viewModel.selectedMinute < 59) {
+              this.viewModel.selectedMinute++
+              this.viewModel.calculateEstimatedCost()
+            }
+          })
+          .onDec(() => {
+            if (this.viewModel.selectedMinute > 0) {
+              this.viewModel.selectedMinute--
+              this.viewModel.calculateEstimatedCost()
+            }
+          })
+        }
+        .layoutWeight(1)
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .padding(16)
+    .borderRadius(12)
+    .backgroundColor('#1E1E1E')
+  }
+
+  @Builder
+  ControlButtons() {
+    Row({ space: 6 }) {
+      if (this.viewModel.isTimerRunning) {
+        Button('Stop Parking')
+          .fontSize(14)
+          .fontWeight(FontWeight.Bold)
+          .backgroundColor('#F44336')
+          .borderRadius(12)
+          .width('70%')
+          .height(32)
+          .onClick(() => {
+            this.viewModel.stopTimer()
+          })
+      } else {
+        Button('Start Parking')
+          .fontSize(14)
+          .fontWeight(FontWeight.Bold)
+          .backgroundColor('#4CAF50')
+          .borderRadius(12)
+          .height(32)
+          .width('70%')
+          .onClick(() => {
+            this.viewModel.startTimer()
+            this.setReminder()
+          })
+      }
+    }
+    .width('100%')
+    .justifyContent(FlexAlign.Center)
+  }
+
+  @Builder
+  CurrentParkingInfo() {
+    Column({ space: 6 }) {
+      Text('Current Session')
+        .fontSize(14)
+        .fontWeight(FontWeight.Medium)
+        .width('100%')
+
+      Row() {
+        Column({ space: 2 }) {
+          Text('Started')
+            .fontSize(10)
+            .fontColor('#999999')
+          Text(this.viewModel.startTime?.toLocaleTimeString() || '-')
+            .fontSize(12)
+            .fontColor('#333333')
+        }
+        .alignItems(HorizontalAlign.Start)
+
+        Blank()
+
+        Column({ space: 2 }) {
+          Text('Ends at')
+            .fontSize(10)
+            .fontColor('#999999')
+          Text(this.viewModel.endTime?.toLocaleTimeString() || '-')
+            .fontSize(12)
+            .fontColor('#333333')
+        }
+        .alignItems(HorizontalAlign.End)
+      }
+      .width('100%')
+
+      if (this.viewModel.hourlyRate > 0) {
+        Divider().color('#EEEEEE')
+
+        Row() {
+          Text('Current Cost')
+            .fontSize(10)
+            .fontColor('#999999')
+
+          Blank()
+
+          Text(this.viewModel.formatCurrency(
+            ((this.viewModel.selectedHour * 60 + this.viewModel.selectedMinute - this.viewModel.remainingTime / 60) /
+              60) *
+            this.viewModel.hourlyRate
+          ))
+            .fontSize(12)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#4CAF50')
+        }
+        .width('100%')
+      }
+    }
+    .width('100%')
+    .padding(16)
+    .backgroundColor('#1E1E1E')
+    .borderRadius(12)
+  }
+
+  @Builder
+  HistoryTab() {
+    Column() {
+      if (this.viewModel.isLoadingHistory) {
+        Column() {
+          LoadingProgress()
+            .width(40)
+            .height(40)
+          Text('Loading history...')
+            .fontSize(12)
+            .fontColor('#999999')
+            .margin({ top: 12 })
+        }
+        .width('100%')
+        .height('100%')
+        .justifyContent(FlexAlign.Center)
+      } else if (this.viewModel.parkingHistory.length === 0) {
+        Column({ space: 6 }) {
+          Text('🚗')
+            .fontSize(30)
+          Text('No parking history yet')
+            .fontSize(14)
+            .fontColor('#999999')
+          Text('Start your first parking session!')
+            .fontSize(12)
+            .fontColor('#CCCCCC')
+        }
+        .width('100%')
+        .height('100%')
+        .justifyContent(FlexAlign.Center)
+      } else {
+        List({ space: 6 }) {
+          ForEach(this.viewModel.parkingHistory, (record: ParkingRecord) => {
+            ListItem() {
+              this.HistoryItem(record)
+            }
+          }, (record: ParkingRecord) => record.id)
+        }
+        .width('100%')
+        .height('100%')
+        .padding({ bottom: 16, right: 16, left: 16, top: 4  })
+      }
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor('#1E1E1E')
+  }
+
+  @Builder
+  HistoryItem(record: ParkingRecord) {
+
+    Row() {
+      Column({ space: 2 }) {
+        Text(record.startTime.toLocaleDateString())
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#333333')
+        Text(record.startTime.toLocaleTimeString())
+          .fontSize(10)
+          .fontColor('#999999')
+      }
+      .alignItems(HorizontalAlign.Start)
+
+      Blank()
+
+      Column({ space: 2 }) {
+        Text(this.viewModel.formatDuration(record.duration))
+          .fontSize(12)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#2196F3')
+        if (record.totalCost) {
+          Text(this.viewModel.formatCurrency(record.totalCost))
+            .fontSize(10)
+            .fontColor('#4CAF50')
+        }
+      }
+      .alignItems(HorizontalAlign.End)
+
+      Blank()
+
+      Button('Delete')
+        .fontSize(10)
+        .height(30)
+        .backgroundColor('#FFEBEE')
+        .fontColor('#F44336')
+        .borderRadius(20)
+        .padding(4)
+        .onClick(() => {
+          this.viewModel.deleteRecord(record.id)
+        })
+
+    }
+    .width('100%')
+    .padding(10)
+    .borderRadius(12)
+    .backgroundColor('#cb000000')
+  }
+
+  @Builder
+  StatisticsTab() {
+    if (this.viewModel.statistics && this.viewModel.statistics.totalSessions > 0) {
+      Scroll() {
+        Column({ space: 8 }) {
+          Row({ space: 4 }) {
+            this.StatCard('Total Sessions', this.viewModel.statistics.totalSessions.toString(), '🚗')
+            this.StatCard('Total Time', this.viewModel.formatDuration(this.viewModel.statistics.totalDuration), '⏱️')
+          }
+          .width('100%')
+
+          Row({ space: 4 }) {
+            this.StatCard('Total Cost', this.viewModel.formatCurrency(this.viewModel.statistics.totalCost), '💰')
+            this.StatCard('Avg Duration',
+              this.viewModel.formatDuration(Math.floor(this.viewModel.statistics.averageDuration)), '📊')
+          }
+          .width('100%')
+        }
+        .width('90%')
+        .padding({ bottom: 16, right: 16, left: 16, top: 4 })
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor('#1E1E1E')
+    } else {
+      Column({ space: 6 }) {
+        Text('📊')
+          .fontSize(26)
+        Text('No statistics yet')
+          .fontSize(14)
+          .fontColor('#999999')
+        Text('Park your car to see statistics')
+          .fontSize(12)
+          .fontColor('#CCCCCC')
+      }
+      .width('100%')
+      .height('100%')
+      .justifyContent(FlexAlign.Center)
+      .backgroundColor('#1E1E1E')
+    }
+  }
+
+  @Builder
+  StatCard(title: string, value: string, icon: string) {
+    Column({ space: 4 }) {
+      Text(icon)
+        .fontSize(20)
+      Text(value)
+        .fontSize(12)
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#2196F3')
+      Text(title)
+        .fontSize(8)
+        .fontColor('#999999')
+    }
+    .width('100%')
+    .layoutWeight(1)
+    .padding(16)
+    .borderRadius(12)
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor('#cb000000')
   }
 }
