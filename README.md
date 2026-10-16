@@ -1,3 +1,5 @@
+> **Note:** To access all shared projects, get information about environment setup, and view other guides, please visit [Explore-In-HMOS Index](https://github.com/Explore-In-HMOS/hmos-index).
+
 # Parking Timer
 
 A comprehensive parking management app for wearable devices featuring GPS location tracking with auto-saved addresses, built-in cost calculator for hourly rates, complete parking history with detailed statistics, smart countdown timer with customizable durations, and a modern dark mode interface optimized for OLED displays. Built with MVVM architecture, it tracks your parking sessions, calculates total expenses, identifies frequently used locations, and stores everything locally with zero internet dependency except for address lookups—all while maintaining maximum 16px fonts for optimal readability on small screens.
